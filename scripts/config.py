@@ -48,11 +48,14 @@ REQUEST_TIMEOUT = float(os.getenv("COLLECTOR_HTTP_TIMEOUT", "30"))
 DOWNLOAD_DELAY = float(os.getenv("COLLECTOR_DOWNLOAD_DELAY", "1.0"))
 MAX_RETRIES = int(os.getenv("COLLECTOR_MAX_RETRIES", "3"))
 BACKOFF_FACTOR = float(os.getenv("COLLECTOR_BACKOFF_FACTOR", "2.0"))
+# MBIE sits behind Imperva. A Python client that claims to be Chrome is served
+# an Incapsula challenge page; the same request identifying itself honestly is
+# served the CSV (10/10 on 2026-09-27, against 0/4 with the Chrome string). So
+# this collector says what it is instead of impersonating a browser. Do not
+# override COLLECTOR_USER_AGENT with a browser string.
 USER_AGENT = os.getenv(
     "COLLECTOR_USER_AGENT",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/135.0.0.0 Safari/537.36",
+    "collector_mbie_nz/1.0 (+https://github.com/lucasweber1202/collector_mbie_nz)",
 )
 
 LOG_LEVEL = os.getenv("COLLECTOR_LOG_LEVEL", "INFO")
