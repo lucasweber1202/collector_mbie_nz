@@ -1,4 +1,5 @@
 """Exercise the official MBIE weekly CSV contract."""
+
 from __future__ import annotations
 
 import os
@@ -27,7 +28,12 @@ def test_id_and_duplicate_guard() -> None:
     assert data.observations[0].reference_date == date(2026, 9, 11)
     metadata.validate_catalog(data.catalog)
     fx = data.catalog["MBIE_ALL_EXCHANGE_RATE_USD_NZD"]
-    assert (fx["unit"], fx["eco_group"], fx["frequency"], fx["country"]) == ("ratio", "exchange_rates", "weekly", "NZD")
+    assert (fx["unit"], fx["eco_group"], fx["frequency"], fx["country"]) == (
+        "ratio",
+        "exchange_rates",
+        "weekly",
+        "NZD",
+    )
     duplicate = weekly(weeks=1).splitlines(keepends=True)[1]
     with pytest.raises(ValueError, match="Duplicate"):
         parse_csv(weekly(weeks=1) + duplicate, min_rows=1, min_weeks=1)
@@ -36,7 +42,9 @@ def test_id_and_duplicate_guard() -> None:
 
 
 def test_missing_series_short_history_and_short_file_fail() -> None:
-    body = b"".join(line for line in weekly().splitlines(keepends=True) if b"Exchange rate" not in line)
+    body = b"".join(
+        line for line in weekly().splitlines(keepends=True) if b"Exchange rate" not in line
+    )
     with pytest.raises(SourceLayoutError, match="series changed"):
         parse_csv(body, min_rows=1, min_weeks=1)
     with pytest.raises(SourceLayoutError, match="weeks"):
@@ -46,7 +54,12 @@ def test_missing_series_short_history_and_short_file_fail() -> None:
 
 
 def _response(body: bytes, content_type: str) -> httpx.Response:
-    return httpx.Response(200, content=body, headers={"content-type": content_type}, request=httpx.Request("GET", "https://www.mbie.govt.nz/x.csv"))
+    return httpx.Response(
+        200,
+        content=body,
+        headers={"content-type": content_type},
+        request=httpx.Request("GET", "https://www.mbie.govt.nz/x.csv"),
+    )
 
 
 def test_incapsula_challenge_is_refused_even_with_status_200() -> None:
