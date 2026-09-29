@@ -14,16 +14,13 @@ from sqlalchemy import TextClause, text
 from sqlalchemy.engine import Connection
 
 from scripts.config import COUNTRY_CURRENCY, METADATA_TABLE, SCHEMA_NAME
+from scripts.extract import ECO_GROUPS, FREQUENCIES, UNITS
 from scripts.time_series import get_series_aggregates
 
 logger = logging.getLogger(__name__)
 _TABLE = f"{SCHEMA_NAME}.{METADATA_TABLE}"
 BATCH_SIZE = 500
 
-# Fleet controlled vocabularies, narrowed to the values this repository emits.
-FREQUENCIES = frozenset({"weekly"})
-UNITS = frozenset({"other", "ratio"})
-ECO_GROUPS = frozenset({"consumer_prices", "producer_prices", "exchange_rates"})
 
 _COMPARABLE_COLUMNS = (
     "name",
@@ -202,16 +199,41 @@ def upsert_metadata(
             updates.append(row)
 
     merge = conn.dialect.name in _MERGE_DIALECTS
-    for start in range(0, len(inserts), BATCH_SIZE):
-        batch = inserts[start : start + BATCH_SIZE]
-        conn.execute(_insert_statement(len(batch)), _batch_parameters(batch))
+    if inserts:
+        total_batches = (len(inserts) + BATCH_SIZE - 1) // BATCH_SIZE
+        logger.info(
+            "Inserting %d rows in %d batches of %d", len(inserts), total_batches, BATCH_SIZE
+        )
+        inserted_rows = 0
+        for batch_index, start in enumerate(range(0, len(inserts), BATCH_SIZE), start=1):
+            batch = inserts[start : start + BATCH_SIZE]
+            conn.execute(_insert_statement(len(batch)), _batch_parameters(batch))
+            inserted_rows += len(batch)
+            logger.info(
+                "Inserted batch %d/%d (%d/%d rows)",
+                batch_index,
+                total_batches,
+                inserted_rows,
+                len(inserts),
+            )
     if updates:
-        if merge:
-            for start in range(0, len(updates), BATCH_SIZE):
-                batch = updates[start : start + BATCH_SIZE]
+        total_batches = (len(updates) + BATCH_SIZE - 1) // BATCH_SIZE
+        logger.info("Updating %d rows in %d batches of %d", len(updates), total_batches, BATCH_SIZE)
+        updated_rows = 0
+        for batch_index, start in enumerate(range(0, len(updates), BATCH_SIZE), start=1):
+            batch = updates[start : start + BATCH_SIZE]
+            if merge:
                 conn.execute(_merge_statement(len(batch)), _batch_parameters(batch))
-        else:
-            conn.execute(_UPDATE_SQL, updates)
+            else:
+                conn.execute(_UPDATE_SQL, batch)
+            updated_rows += len(batch)
+            logger.info(
+                "Updated batch %d/%d (%d/%d rows)",
+                batch_index,
+                total_batches,
+                updated_rows,
+                len(updates),
+            )
     logger.info("Metadata upsert: inserted=%d updated=%d", len(inserts), len(updates))
     return len(inserts), len(updates)
 

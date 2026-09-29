@@ -17,6 +17,12 @@ from scripts.config import REQUEST_TIMEOUT, USER_AGENT
 from scripts.releases import ReleaseEvidence
 from scripts.time_series import Observation
 
+# Canonical metadata vocabulary produced by this source.
+FREQUENCIES: frozenset[str] = frozenset({"weekly"})
+UNITS: frozenset[str] = frozenset({"other", "ratio"})
+ECO_GROUPS: frozenset[str] = frozenset({"consumer_prices", "producer_prices", "exchange_rates"})
+
+
 SOURCE_URL = "https://www.mbie.govt.nz/assets/Data-Files/Energy/Weekly-fuel-price-monitoring/weekly-table.csv"
 PAGE_URL = "https://www.mbie.govt.nz/building-and-energy/energy-and-natural-resources/energy-statistics-and-modelling/energy-statistics/weekly-fuel-price-monitoring"
 FIELDS = {"Week", "Date", "Fuel", "Variable", "Value", "Unit", "Status"}
@@ -44,7 +50,7 @@ EXPECTED_SERIES = {(fuel, variable, "NZD c/L") for fuel, variable in SELECTED if
     ("NA", "Dubai crude price", "NZD/bbl"),
     ("NA", "Exchange rate", "USD/NZD"),
 }
-UNITS = {"NZD c/L", "USD/bbl", "NZD/bbl", "USD/NZD"}
+SOURCE_UNITS = {"NZD c/L", "USD/bbl", "NZD/bbl", "USD/NZD"}
 CSV_MAGIC = b'"Week","Date","Fuel","Variable","Value","Unit","Status"'
 MIN_PAYLOAD_BYTES = 1_000_000
 MIN_SOURCE_ROWS = 30_000
@@ -76,7 +82,7 @@ class SourceData:
 
 
 def build_series_id(fuel: str, variable: str, unit: str) -> str:
-    if (fuel, variable) not in SELECTED or unit not in UNITS:
+    if (fuel, variable) not in SELECTED or unit not in SOURCE_UNITS:
         raise ValueError(f"Invalid MBIE series: {fuel}, {variable}, {unit}")
     if fuel != "NA" and unit != "NZD c/L":
         raise ValueError("Fuel component unit changed")

@@ -50,11 +50,22 @@ components, ETS and importer margin are excluded as redundant or derived.
 ## Release monitoring
 
 MBIE's publication note is only on the challenged landing page and the CSV
-has no `Last-Modified`/`ETag`, so no publication date is claimed
-(`last_publish_date` stays NULL). The release evidence is the latest week the
+has no `Last-Modified`/`ETag`, so no official publication date is claimed.
+Under Masuko sections 3 and 13.7, mandatory `metadata.last_publish_date` is
+`DATE(MAX(time_series.collected_at))` per series. This is a collection-derived
+fallback, not evidence of an official MBIE release. An unchanged rerun retains
+the stored date and timestamp. The release evidence is the latest week the
 file covers: a later week is `new_release`; the same week with changed values
 (e.g. `Provisional` → `Final`) is `revised_source`; otherwise `same_release`.
 `layout_changed` is logged on `SourceLayoutError`.
+
+## Date semantics
+
+- `reference_date`: the weekly period reported by MBIE.
+- `last_publish_date`: official release date when trustworthy; for this CSV,
+  the per-series collection-derived fallback required by Masuko.
+- `collected_at`: the timestamp at which this pipeline stored a changed value.
+- `vintage_date`: the UTC collection day; an unchanged rerun creates no vintage.
 
 ## Point in time
 
@@ -70,8 +81,8 @@ vintage (template rule).
   and 12 metadata rows (`first_release`); run 2 wrote nothing (`same_release`).
 - `tests/test_postgres_integration.py`: canonical tables, idempotent rerun,
   later-day vintage, same-day overwrite, metadata MERGE with NULL in every
-  nullable column (including `last_publish_date`, which is NULL here in
-  production), time-series MERGE, run log, release classification.
+  nullable column (`description`, `frequency`, `unit`, `first_observation`,
+  `last_observation`); `eco_group` and `last_publish_date` are mandatory, time-series MERGE, run log, release classification.
 - All emitted SQL parses with the Spark SQL grammar (pyspark 4.1.1).
   **Databricks corporate runtime: not verified.**
 
