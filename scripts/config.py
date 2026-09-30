@@ -80,3 +80,9 @@ def missing_environment(prod: bool = PROD) -> list[str]:
         return [] if DATABASE_URL else ["COLLECTOR_DB_URL"]
     required = {"DBX_SERVER_HOSTNAME": DBX_SERVER_HOSTNAME, "DBX_HTTP_PATH": DBX_HTTP_PATH}
     return sorted(name for name, value in required.items() if not value)
+
+if MAX_RETRIES < 1 or BACKOFF_FACTOR < 0 or DOWNLOAD_DELAY < 0:
+    raise ValueError("HTTP retry count must be positive and delays non-negative")
+
+MIN_HISTORY_YEARS = 3
+MAX_STALE_MONTHS = {'weekly': 2}
